@@ -1,77 +1,434 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 
 <head>
-    <meta charset="UTF-8">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
 
-    <title>🐹 AI 倉鼠辨識 APP</title>
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="style.css">
+<title>AI 倉鼠辨識 APP</title>
 
-    <!-- TensorFlow.js -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+
+<style>
+
+body {
+    font-family:
+        Arial,
+        "Microsoft JhengHei",
+        sans-serif;
+
+    max-width: 700px;
+    margin: auto;
+    padding: 30px 20px;
+    text-align: center;
+    background: #f7f7f7;
+}
+
+h1 {
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    color: #666;
+    margin-bottom: 25px;
+}
+
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 18px;
+    box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+}
+
+input {
+    margin: 20px 0;
+}
+
+img {
+    display: none;
+    max-width: 100%;
+    max-height: 350px;
+    margin: 20px auto;
+    border-radius: 12px;
+}
+
+button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 10px;
+    font-size: 17px;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: 0.5;
+}
+
+#status {
+    margin-top: 20px;
+    color: #555;
+}
+
+#result {
+    margin-top: 25px;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.confidence {
+    margin-top: 10px;
+    font-size: 18px;
+    color: #555;
+}
+
+</style>
+
 </head>
 
 <body>
 
-    <main class="container">
+<div class="card">
 
-        <h1>🐹 AI 倉鼠辨識 APP</h1>
+<h1>🐹 AI 倉鼠辨識 APP</h1>
 
-        <p class="description">
-            上傳一張小動物照片，讓 AI 幫你辨識品種！
-        </p>
+<div class="subtitle">
+上傳照片，讓 AI 判斷動物類別
+</div>
 
-        <div class="card">
+<input
+    type="file"
+    id="imageInput"
+    accept="image/*"
+>
 
-            <input
-                type="file"
-                id="imageUpload"
-                accept="image/*"
-            >
+<img id="preview">
 
-            <div class="image-area">
+<br>
 
-                <img
-                    id="preview"
-                    alt="圖片預覽"
-                >
+<button
+    id="predictButton"
+    disabled
+>
+開始辨識
+</button>
 
-            </div>
+<div id="status">
+模型載入中...
+</div>
 
-            <button id="predictButton" disabled>
-                🔍 開始 AI 辨識
-            </button>
+<div id="result"></div>
 
-            <div id="loading">
-                AI 模型載入中，請稍候...
-            </div>
+<div
+    id="confidence"
+    class="confidence"
+></div>
 
-            <div id="result"></div>
+</div>
 
-        </div>
 
-        <section class="classes">
+<script>
 
-            <h2>AI 可以辨識</h2>
+let model = null;
 
-            <p>🐹 三線野生色</p>
-            <p>🐹 布丁鼠</p>
-            <p>🐹 銀狐倉鼠</p>
-            <p>🐹 黃金鼠</p>
-            <p>🦘 蜜袋鼯</p>
-            <p>🐭 龍貓</p>
-            <p>🐀 花枝鼠</p>
-            <p>🐹 天竺鼠</p>
 
-        </section>
+/*
+ * 你的模型共有 8 個輸出類別
+ */
+const labels = [
 
-    </main>
+    "三線野生色 (Campbell's Normal)",
 
-    <script src="script.js"></script>
+    "布丁鼠 (Pudding Hamster)",
+
+    "銀狐倉鼠 (Silver Fox Hamster)",
+
+    "黃金鼠 (Golden Hamster)",
+
+    "蜜袋鼯 (Sugar Glider)",
+
+    "龍貓 (Chinchilla)",
+
+    "花枝鼠 (Fancy Rat)",
+
+    "天竺鼠 (Guinea Pig)"
+
+];
+
+
+const imageInput =
+    document.getElementById("imageInput");
+
+const preview =
+    document.getElementById("preview");
+
+const predictButton =
+    document.getElementById("predictButton");
+
+const status =
+    document.getElementById("status");
+
+const result =
+    document.getElementById("result");
+
+const confidence =
+    document.getElementById("confidence");
+
+
+/*
+ * 載入模型
+ */
+
+async function loadModel() {
+
+    try {
+
+        status.innerText =
+            "模型載入中...";
+
+        model =
+            await tf.loadLayersModel(
+                "./model/model.json"
+            );
+
+        console.log(
+            "模型載入成功"
+        );
+
+        console.log(
+            "輸入：",
+            model.inputs[0].shape
+        );
+
+        console.log(
+            "輸出：",
+            model.outputs[0].shape
+        );
+
+
+        status.innerText =
+            "✅ 模型載入成功";
+
+        predictButton.disabled = false;
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "模型載入失敗：",
+            error
+        );
+
+        status.innerText =
+            "❌ 模型載入失敗";
+
+        result.innerText =
+            error.message;
+
+    }
+
+}
+
+
+/*
+ * 選擇圖片
+ */
+
+imageInput.addEventListener(
+    "change",
+    function(event) {
+
+        const file =
+            event.target.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        const url =
+            URL.createObjectURL(file);
+
+        preview.src = url;
+
+        preview.style.display =
+            "block";
+
+        result.innerText = "";
+
+        confidence.innerText = "";
+
+    }
+);
+
+
+/*
+ * 開始辨識
+ */
+
+predictButton.addEventListener(
+    "click",
+    async function() {
+
+        if (!model) {
+
+            alert(
+                "模型尚未載入"
+            );
+
+            return;
+
+        }
+
+
+        if (!preview.src) {
+
+            alert(
+                "請先選擇圖片"
+            );
+
+            return;
+
+        }
+
+
+        predictButton.disabled =
+            true;
+
+        status.innerText =
+            "AI 辨識中...";
+
+
+        let inputTensor = null;
+
+        let outputTensor = null;
+
+
+        try {
+
+            /*
+             * 模型輸入：
+             * 224 × 224 × 3
+             */
+
+            inputTensor =
+                tf.tidy(() => {
+
+                    return tf.browser
+                        .fromPixels(preview)
+                        .resizeBilinear(
+                            [224, 224]
+                        )
+                        .toFloat()
+                        .div(255)
+                        .expandDims(0);
+
+                });
+
+
+            /*
+             * 執行模型
+             */
+
+            outputTensor =
+                model.predict(
+                    inputTensor
+                );
+
+
+            const probabilities =
+                await outputTensor.data();
+
+
+            /*
+             * 找最高機率
+             */
+
+            let maxIndex = 0;
+
+            for (
+                let i = 1;
+                i < probabilities.length;
+                i++
+            ) {
+
+                if (
+                    probabilities[i]
+                    >
+                    probabilities[maxIndex]
+                ) {
+
+                    maxIndex = i;
+
+                }
+
+            }
+
+
+            const score =
+                probabilities[maxIndex];
+
+
+            result.innerText =
+                "🐹 " +
+                labels[maxIndex];
+
+
+            confidence.innerText =
+                "信心度：" +
+                (score * 100).toFixed(2) +
+                "%";
+
+
+            status.innerText =
+                "✅ 辨識完成";
+
+
+        }
+
+        catch (error) {
+
+            console.error(
+                error
+            );
+
+            status.innerText =
+                "❌ 辨識失敗";
+
+            result.innerText =
+                error.message;
+
+        }
+
+        finally {
+
+            if (inputTensor) {
+                inputTensor.dispose();
+            }
+
+            if (outputTensor) {
+                outputTensor.dispose();
+            }
+
+            predictButton.disabled =
+                false;
+
+        }
+
+    }
+);
+
+
+/*
+ * 啟動
+ */
+
+loadModel();
+
+</script>
 
 </body>
 
