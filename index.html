@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>🐹 AI 倉鼠辨識 APP</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+</head>
+
+<body>
+
+    <main class="container">
+
+        <h1>🐹 AI 倉鼠辨識 APP</h1>
+
+        <p class="description">
+            上傳一張小動物照片，讓 AI 幫你辨識品種！
+        </p>
+
+        <div class="card">
+
+            <input
+                type="file"
+                id="imageUpload"
+                accept="image/*"
+            >
+
+            <div class="image-area">
+
+                <img
+                    id="preview"
+                    alt="圖片預覽"
+                >
+
+            </div>
+
+            <button id="predictButton" disabled>
+                🔍 開始 AI 辨識
+            </button>
+
+            <div id="loading">
+                AI 模型載入中，請稍候...
+            </div>
+
+            <div id="result"></div>
+
+        </div>
+
+        <section class="classes">
+
+            <h2>AI 可以辨識</h2>
+
+            <p>🐹 三線野生色</p>
+            <p>🐹 布丁鼠</p>
+            <p>🐹 銀狐倉鼠</p>
+            <p>🐹 黃金鼠</p>
+            <p>🦘 蜜袋鼯</p>
+            <p>🐭 龍貓</p>
+            <p>🐀 花枝鼠</p>
+            <p>🐹 天竺鼠</p>
+
+        </section>
+
+    </main>
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
